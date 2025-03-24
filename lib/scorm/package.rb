@@ -145,22 +145,36 @@ module Scorm
       return false if File.directory?(@package)
       return true
     end
-    
+
     # Reads a file from the package. If the file is not extracted yet (all files
     # are extracted by default when opening the package) it will be extracted
     # to the file system and its content returned. If the +dry_run+ option was
-    # set to +true+ when opening the package the file will <em>not</em> be
-    # extracted to the file system, but read directly into memory.
+    # set to +true+ when opening the package, the file will not be extracted
+    # to the file system but read directly into memory.
     def file(filename)
       if File.exists?(@path)
-        File.read(path_to(filename))
+        # Checks if the file exists in the filesystem
+        # If it does, read it from there
+        return File.read(path_to(filename)) if File.exists?(path_to(filename)) 
       else
-        Zip::ZipFile.foreach(@package) do |entry|
-          return entry.get_input_stream {|io| io.read } if entry.name == filename
-        end
+        read_from_zip(filename) # Reads directly from the ZIP if not extracted
       end
     end
-    
+
+    # Reads a file from a ZIP archive without extracting it
+    def read_from_zip(filename)
+      content = nil
+      Zip::ZipFile.open(@package) do |zip_file|
+        zip_file.each do |entry|
+          if entry.name == filename
+            content = entry.get_input_stream.read
+            break
+          end
+        end
+      end
+      content
+    end
+
     # Returns +true+ if the specified file (or directory) exists in the package.
     def exists?(filename)
       if File.exists?(@path)
