@@ -60,9 +60,11 @@ module Scorm
       
         # Find a <lom> element...
         lom_el = nil
-        if adlcp_location = REXML::XPath.first(metadata_el, 'adlcp:location')
+        adlcp_location = REXML::XPath.first(metadata_el, 'adlcp:location')
+        adlcp_location_file = adlcp_location ? package.file(adlcp_location.text.to_s) : nil
+        if adlcp_location_file.present?
           # Read external metadata file
-          metadata_xmldoc = REXML::Document.new(package.file(adlcp_location.text.to_s))
+          metadata_xmldoc = REXML::Document.new(adlcp_location_file)
           if metadata_xmldoc.nil? || (metadata_xmldoc.root.name != 'lom')
             raise InvalidManifest, "Invalid external metadata file (#{adlcp_location.text.to_s})."
           else
